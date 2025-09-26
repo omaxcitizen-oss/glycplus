@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "32535166517",
+    "project_id": "glycplus",
+    "storage_bucket": "glycplus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32535166517:android:bd8d42ce5976e107ef7b7c",
+        "android_client_info": {
+          "package_name": "com.glyc.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMnH6tEMnxMeFsZROvF4d2JbmdLC_HfDQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
