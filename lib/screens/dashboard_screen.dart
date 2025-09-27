@@ -25,6 +25,15 @@ class DashboardScreen extends StatelessWidget {
         elevation: 4,
         actions: [
           IconButton(
+            icon: const Icon(Icons.person, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
