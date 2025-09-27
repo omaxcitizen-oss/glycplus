@@ -1,11 +1,6 @@
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../models/user_profile.dart';
-import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
+import 'auth_screen.dart';
 import 'glucose_management_screen.dart';
 import 'profile_screen.dart';
 
@@ -14,192 +9,175 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final user = context.watch<User?>();
-    final firestoreService = Provider.of<FirestoreService>(context);
+    final user = FirebaseAuth.instance.currentUser;
+    final welcomeMessage = user?.displayName?.isNotEmpty ?? false
+        ? 'Bienvenue, ${user!.displayName}!'
+        : (user?.email?.isNotEmpty ?? false ? 'Bienvenue, ${user!.email}!' : 'Bienvenue !');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         title: const Text(
           'Tableau de Bord',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        centerTitle: true,
+        backgroundColor: const Color(0xFF2D9CDB),
+        elevation: 4,
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_outline, color: Colors.black54),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const AuthScreen()),
               );
             },
-            tooltip: 'Profil',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.black54),
-            onPressed: () async {
-              await authService.signOut();
-            },
-            tooltip: 'Déconnexion',
           ),
         ],
       ),
-      body: user == null
-          ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<UserProfile?>(
-              stream: firestoreService.getUserProfileStream(user.uid),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data == null) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text("Créez un profil pour commencer.", textAlign: TextAlign.center, style: TextStyle(fontSize: 18)),
-                          const SizedBox(height: 20),
-                          ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen())), child: const Text('Créer mon profil'))
-                        ],
-                      ),
-                    )
-                  );
-                }
-
-                final userProfile = snapshot.data!;
-                final pseudo = userProfile.pseudo ?? 'cher utilisateur';
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Column(
+            children: [
+              const SizedBox(height: 32),
+              Center(
+                child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-                      child: Text(
-                        'Bienvenue $pseudo 👋',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold, color: Colors.black87),
+                    Text(
+                      welcomeMessage,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Text(
-                        'Prêt à mieux gérer votre diabète ?',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(color: Colors.black54),
-                      ),
-                    ),
-                    Expanded(
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        padding: const EdgeInsets.all(20.0),
-                        childAspectRatio: 0.9, // Adjusted for a slightly taller card
-                        crossAxisSpacing: 20,
-                        mainAxisSpacing: 20,
-                        children: <Widget>[
-                          _buildDashboardCard(
-                            context,
-                            title: 'Correction Glycémie',
-                            icon: Icons.opacity_outlined, // Modern icon
-                            color: const Color(0xFFAEE2FF), // Bleu ciel doux
-                            iconColor: const Color(0xFF00796B),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        const GlucoseManagementScreen()),
-                              );
-                            },
-                          ),
-                          _buildDashboardCard(
-                            context,
-                            title: 'Suivi des Repas',
-                            icon: Icons.pie_chart_outline, // Modern icon
-                            color: const Color(0xFFC8F4C4), // Vert menthe clair
-                            iconColor: const Color(0xFFF57C00),
-                            onTap: () {
-                              // TODO: Navigate to Meal Tracking Screen
-                            },
-                          ),
-                          _buildDashboardCard(
-                            context,
-                            title: 'Historique',
-                            icon: Icons.bar_chart_outlined, // Modern icon
-                            color: const Color(0xFFFFD8BE), // Peche pastel
-                            iconColor: const Color(0xFF3949AB),
-                            onTap: () {
-                              // TODO: Navigate to History Screen
-                            },
-                          ),
-                          _buildDashboardCard(
-                            context,
-                            title: 'Exporter Données',
-                            icon: Icons.share_outlined, // Modern icon
-                            color: const Color(0xFFE4D9FF), // Lavande lumineuse
-                            iconColor: const Color(0xFFFBC02D),
-                            onTap: () {
-                              // TODO: Implement Export
-                            },
-                          ),
-                        ],
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Prêt à mieux gérer votre diabète ?",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.black54,
                       ),
                     ),
                   ],
-                );
-              },
-            ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: <Widget>[
+                  _buildDashboardCard(
+                    context,
+                    title: 'Correction Glycémie',
+                    icon: Icons.bloodtype_outlined,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2D9CDB), Color(0xFF56CCF2)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const GlucoseManagementScreen()),
+                      );
+                    },
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    title: 'Suivi des Repas',
+                    icon: Icons.pie_chart_outline,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF27AE60), Color(0xFF6FCF97)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () {
+                      // TODO: Navigate to Meal Tracking Screen
+                    },
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    title: 'Historique',
+                    icon: Icons.bar_chart_outlined,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF2994A), Color(0xFFF2C94C)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () {
+                      // TODO: Navigate to History Screen
+                    },
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    title: 'Profil & Réglages',
+                    icon: Icons.person_outline,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF9B51E0), Color(0xFFBB6BD9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildDashboardCard(BuildContext context,
-      {required String title,
-      required IconData icon,
-      required Color color,
-      required Color iconColor,
-      required VoidCallback onTap}) {
+  Widget _buildDashboardCard(BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Gradient gradient,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(24),
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 2,
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            )
-          ]
+              color: Colors.black.withOpacity(0.15),
+              spreadRadius: 1,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            Icon(icon, size: 48.0, color: iconColor),
+            Icon(icon, size: 48.0, color: Colors.white),
             const SizedBox(height: 16.0),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold, color: iconColor),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
