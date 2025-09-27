@@ -1,6 +1,6 @@
 
-name: myapp
-description: "A new Flutter project."
+name: glycplus
+description: "Une application Flutter pour la gestion du diabète."
 publish_to: 'none' 
 version: 1.0.0+1
 

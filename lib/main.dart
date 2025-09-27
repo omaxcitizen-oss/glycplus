@@ -37,17 +37,14 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Diabète App',
+        title: 'Glyc'Plus',
         theme: ThemeData(
-          colorScheme: const ColorScheme(
-            primary: Color(0xFFAEE2FF), // Bleu ciel doux
-            secondary: Color(0xFFC8F4C4), // Vert menthe clair
-            surface: Color(0xFFFFD8BE), // Lavande lumineuse
-            error: Colors.red,
-            onPrimary: Colors.black,
-            onSecondary: Colors.black,
-            onSurface: Colors.black,
-            onError: Colors.white,
+          useMaterial3: true, // Activation de Material 3
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF007BFF), // Un bleu médical comme couleur de base
+            primary: const Color(0xFF007BFF),
+            secondary: const Color(0xFF28A745), // Un vert santé pour les éléments secondaires
+            error: const Color(0xFFDC3545), // Un rouge standard pour les erreurs
             brightness: Brightness.light,
           ),
           visualDensity: VisualDensity.adaptivePlatformDensity,

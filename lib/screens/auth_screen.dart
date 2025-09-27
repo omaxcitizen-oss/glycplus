@@ -116,22 +116,29 @@ class _AuthScreenState extends State<AuthScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   // Page Title
-                  Text(
-                    isConnecting ? "Bienvenue" : "Créez votre compte",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF333333),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2D9CDB),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isConnecting ? "Bienvenue" : "Créez votre compte",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     isConnecting ? "Connectez-vous pour continuer" : "Rejoignez-nous en quelques étapes",
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
-                      color: Colors.grey,
+                      color: Colors.grey[700],
                     ),
                   ),
                   const SizedBox(height: 48),
@@ -207,7 +214,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                        const Text('Se souvenir de moi', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                        Text('Se souvenir de moi', style: TextStyle(fontSize: 16, color: Colors.grey[700])),
                       ],
                     ),
                   
@@ -255,8 +262,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     onPressed: _switchAuthMode,
                     child: Text(
                       isConnecting ? "Vous n'avez pas de compte ? S'inscrire" : "Vous avez déjà un compte ? Se connecter",
-                       style: const TextStyle(
-                        color: Colors.grey,
+                       style: TextStyle(
+                        color: Colors.grey[700],
                         fontWeight: FontWeight.w500,
                       ),
                     ),

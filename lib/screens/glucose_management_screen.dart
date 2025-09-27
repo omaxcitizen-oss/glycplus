@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:myapp/models/log_model.dart';
+import 'package:glycplus/models/log_model.dart';
 import 'profile_screen.dart';
 
 class GlucoseManagementScreen extends StatefulWidget {
@@ -48,13 +48,14 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          title: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(message, style: const TextStyle(fontSize: 16)),
+              Text(message, style: const TextStyle(fontSize: 16, color: Colors.black87)),
               if (correctionDose > 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 20.0),

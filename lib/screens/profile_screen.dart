@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +6,26 @@ import '../models/user_profile.dart';
 import '../services/firestore_service.dart';
 import '../models/insulin.dart';
 import 'advice_screen.dart';
+
+// --- AJOUT : Listes des marques d'insuline ---
+const List<String> basalInsulinBrands = [
+  'Lantus',
+  'Levemir',
+  'Toujeo',
+  'Tresiba',
+  'Basaglar',
+  'Abasaglar',
+];
+
+const List<String> bolusInsulinBrands = [
+  'NovoRapid',
+  'NovoLog',
+  'Humalog',
+  'Apidra',
+  'Fiasp',
+  'Lyumjev',
+];
+// --- FIN DE L'AJOUT ---
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -160,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       try {
         await Provider.of<FirestoreService>(context, listen: false).setUserProfile(profile);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil enregistré avec succès !'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Profil enregistré avec succès !'), backgroundColor: Color(0xFF27AE60)),
         );
         // Redirect if needed
         if (Navigator.canPop(context)) {
@@ -186,22 +205,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Calculer mon ISF Empirique'),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Calculer mon ISF Empirique',
+            style: TextStyle(fontSize: 20, color: Color(0xFF2D9CDB), fontWeight: FontWeight.bold),
+          ),
           content: Form(
             key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildTextFormField(beforeController, 'Glycémie avant correction', TextInputType.number, prefixIcon: Icons.arrow_upward),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 _buildTextFormField(afterController, 'Glycémie après (2h)', TextInputType.number, prefixIcon: Icons.arrow_downward),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 _buildTextFormField(doseController, 'Dose d\'insuline rapide (unités)', TextInputType.number, prefixIcon: Icons.opacity),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler', style: TextStyle(fontSize: 16, color: Colors.black54)),
+            ),
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
@@ -213,14 +240,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _isfController.text = isf.toStringAsFixed(1);
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(
+                      SnackBar(
                         content: Text('Votre ISF empirique calculé est de ${isf.toStringAsFixed(1)}. Il a été mis à jour dans le formulaire.'),
-                        backgroundColor: Colors.blue,
+                        backgroundColor: const Color(0xFF2D9CDB),
                       ),
                     );
                   }
                 }
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2D9CDB),
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               child: const Text('Calculer et Utiliser'),
             ),
           ],
@@ -235,14 +269,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final firestoreService = Provider.of<FirestoreService>(context, listen: false);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Mon Profil'),
+        title: const Text('Mon Profil', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF2D9CDB),
+        elevation: 4,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: StreamBuilder<UserProfile?>(
         stream: firestoreService.getUserProfileStream(user!.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: Color(0xFF2D9CDB)));
           }
           if (snapshot.hasData && _userProfile == null) {
             _loadUserProfile(snapshot.data);
@@ -250,10 +288,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return _buildProfileForm(user);
         },
       ),
-       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isSaving ? null : (() => _saveProfile(user)),
-        label: const Text('Sauvegarder'),
-        icon: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Icon(Icons.save),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: ElevatedButton.icon(
+          onPressed: _isSaving ? null : (() => _saveProfile(user!)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF27AE60),
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 56),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          icon: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Icon(Icons.save),
+          label: const Text('Sauvegarder les modifications'),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
@@ -263,70 +311,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 80.0), // Add padding to bottom
+        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 100.0), // Add padding to bottom
         children: <Widget>[
           _buildSectionTitle('Profil Utilisateur'),
           _buildTextFormField(_pseudoController, 'Pseudo', TextInputType.text, prefixIcon: Icons.person),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           _buildTextFormField(_ageController, 'Âge', TextInputType.number, prefixIcon: Icons.cake),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           _buildTextFormField(_weightController, 'Poids (kg)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.monitor_weight),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           _buildDropdownFormField(
             value: _selectedDiabetesType,
             items: ['Type 1', 'Type 2 (insulino-dépendant)', 'LADA', 'Autre'],
             label: 'Type de diabète',
             onChanged: (value) => setState(() => _selectedDiabetesType = value),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           _buildDropdownFormField(
             value: _selectedGlucoseUnit,
             items: ['mg/dL', 'mmol/L', 'g/dL'],
             label: 'Unité de Glycémie',
             onChanged: (value) {
-                setState(() => _selectedGlucoseUnit = value);
-                _autoCalculateRatios();
-            }
+              setState(() => _selectedGlucoseUnit = value);
+              _autoCalculateRatios();
+            },
           ),
-          const Divider(height: 40),
-
+          const Divider(height: 50, thickness: 1, color: Color(0xFFE0E0E0)),
           _buildSectionTitle('Objectifs Glycémiques'),
           _buildTextFormField(_targetFastingController, 'Cible à jeun', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.wb_sunny_outlined, suffixText: _selectedGlucoseUnit),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           _buildTextFormField(_targetPostprandialController, 'Cible postprandiale', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.fastfood_outlined, suffixText: _selectedGlucoseUnit),
-          const Divider(height: 40),
-
+          const Divider(height: 50, thickness: 1, color: Color(0xFFE0E0E0)),
           _buildSectionTitle('Traitement Insuline'),
           _buildDropdownFormField(value: _selectedBasalInsulin, items: basalInsulinBrands, label: 'Insuline Lente (Basale)', onChanged: (v) => setState(() => _selectedBasalInsulin = v)),
-          const SizedBox(height: 16),
-          _buildTextFormField(_basalDoseController, 'Dose journalière (unités)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.timelapse),
           const SizedBox(height: 24),
+          _buildTextFormField(_basalDoseController, 'Dose journalière (unités)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.timelapse),
+          const SizedBox(height: 32),
           _buildDropdownFormField(value: _selectedBolusInsulin, items: bolusInsulinBrands, label: 'Insuline Rapide (Bolus)', onChanged: (v) => setState(() => _selectedBolusInsulin = v)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           _buildTextFormField(_bolusDoseController, 'Dose journalière (unités)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.speed),
-          const Divider(height: 40),
-            
+          const Divider(height: 50, thickness: 1, color: Color(0xFFE0E0E0)),
           _buildSectionTitle('Ratios de Calcul Personnalisés'),
           _buildTextFormField(_isfController, 'Facteur de Sensibilité (ISF)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.straighten, suffixText: '${_selectedGlucoseUnit ?? 'mg/dL'}/U'),
           _buildInfoCard('L\'ISF (ou facteur de sensibilité) indique de combien votre glycémie baisse (en ${_selectedGlucoseUnit ?? 'mg/dL'}) pour 1 unité d\'insuline rapide.'),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           _buildTextFormField(_icrController, 'Ratio Glucides/Insuline (ICR)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.rice_bowl, suffixText: 'g/U'),
           _buildInfoCard('L\'ICR représente le nombre de grammes de glucides couverts par 1 unité d\'insuline rapide.'),
-          const SizedBox(height: 24),
-          Center(
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton.icon(
               icon: const Icon(Icons.calculate_outlined),
               label: const Text('Calculer mon ISF Empirique'),
               onPressed: _showEmpiricalIsfDialog,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2D9CDB),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
           const SizedBox(height: 24),
-          Center(
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton.icon(
               icon: const Icon(Icons.analytics_outlined),
               label: const Text('Voir les conseils pour mes ratios'),
               onPressed: _navigateToAdviceScreen,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2D9CDB).withOpacity(0.9),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
           const SizedBox(height: 40),
@@ -336,54 +396,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSectionTitle(String title) => Padding(
-        padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
-        child: Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w600)),
+        padding: const EdgeInsets.only(bottom: 24.0, top: 8.0),
+        child: Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
       );
 
   Widget _buildTextFormField(TextEditingController controller, String label, TextInputType keyboardType, {IconData? prefixIcon, String? suffixText}) => TextFormField(
         controller: controller,
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+          labelStyle: const TextStyle(fontSize: 16, color: Colors.black54),
+          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF2D9CDB)) : null,
           suffixText: suffixText,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: const Color(0xFFF5F5F5),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D9CDB), width: 2)),
+          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         ),
         keyboardType: keyboardType,
         validator: (value) {
           if (value == null || value.isEmpty) return 'Ce champ est recommandé.';
-          if (num.tryParse(value) == null) return 'Veuillez entrer un nombre valide.';
-          if ((num.tryParse(value) ?? -1) < 0) return 'Veuillez entrer une valeur positive.';
+          if (keyboardType == TextInputType.number || keyboardType == const TextInputType.numberWithOptions(decimal: true)) {
+            if (num.tryParse(value) == null) return 'Veuillez entrer un nombre valide.';
+            if ((num.tryParse(value) ?? -1) < 0) return 'Veuillez entrer une valeur positive.';
+          }
           return null;
         },
       );
 
-  Widget _buildDropdownFormField({required String? value, required List<String> items, required String label, required void Function(String?) onChanged}) => DropdownButtonFormField<String>(
-        initialValue: value,
+  Widget _buildDropdownFormField({required String? value, required List<String> items, required String label, required void Function(String?) onChanged}) =>
+      DropdownButtonFormField<String>(
+        value: value,
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          labelStyle: const TextStyle(fontSize: 16, color: Colors.black54),
           filled: true,
-          fillColor: Colors.grey[50],
+          fillColor: const Color(0xFFF5F5F5),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D9CDB), width: 2)),
+          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         ),
-        items: items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item))).toList(),
+        dropdownColor: Colors.white,
+        items: items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item, style: const TextStyle(color: Colors.black87)))).toList(),
         onChanged: onChanged,
       );
 
-  Widget _buildInfoCard(String message) => Card(
-        margin: const EdgeInsets.only(top: 8.0),
-        elevation: 0,
-        color: Colors.blue.withOpacity(0.05),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
-              const SizedBox(width: 12),
-              Expanded(child: Text(message, style: TextStyle(color: Colors.blue.shade800))),
-            ],
-          ),
+  Widget _buildInfoCard(String message) => Container(
+        margin: const EdgeInsets.only(top: 12.0),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2D9CDB).withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF2D9CDB).withOpacity(0.2)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.info_outline, color: Color(0xFF2D9CDB), size: 22),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message, style: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.5))),
+          ],
         ),
       );
 }
