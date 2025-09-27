@@ -1,71 +1,45 @@
+### **Blueprint du Projet : Glyc'Plus**
 
-# Blueprint: DiabeteApp
+#### **1. Vue d'Ensemble**
 
-Ce document sert de feuille de route pour le développement de l'application de gestion du diabète. Il décrit l'architecture, les fonctionnalités et le design de l'application.
+**Objectif** : Créer une application mobile, moderne et intuitive pour aider les personnes diabétiques (en particulier de type 1) à gérer leur traitement. L'application se concentrera sur des calculs précis, une interface claire et une aide à la décision pour améliorer le contrôle glycémique au quotidien.
 
-## 1. Vue d'ensemble
+**Principes Clés** : Simplicité, Fiabilité, Éducation, Sécurité des données.
 
-L'application vise à fournir un assistant complet pour les personnes atteintes de diabète, en particulier celles qui sont sous insulinothérapie. Elle offrira des outils pour le suivi de la glycémie, le calcul des doses d'insuline, le suivi des repas et une assistance pédagogique grâce à l'IA.
+---
 
-## 2. Architecture et Design
+#### **2. Identité Visuelle et Design**
 
-- **Framework**: Flutter
-- **Backend & Base de données**: Firebase (Firestore, Firebase Auth)
-- **State Management**: Provider
-- **Design**: Material Design 3, avec une interface claire, moderne et accessible.
-- **Navigation**: Un `DashboardScreen` central donnant accès aux différents modules (Correction, Repas, Profil, etc.).
+*   **Thème** : Moderne, épuré et rassurant. Utilisation de Material Design 3.
+*   **Palette de Couleurs** :
+    *   **Primaire** : Un bleu médical apaisant.
+    *   **Secondaire** : Des touches de vert pour les succès et la santé.
+    *   **Alertes** : Orange pour les hypoglycémies, rouge pour les hyperglycémies sévères.
+*   **Typographie** : Police claire et lisible (par exemple, Google Fonts `Roboto` ou `Open Sans`).
+*   **Iconographie** : Icônes Material claires et compréhensibles.
 
-## 3. Fonctionnalités Implémentées et Planifiées
+---
 
-### Étape 1 : Mise en Place du Profil Utilisateur (En cours)
+#### **3. Fonctionnalités Principales (MVP - Version 1.0)**
 
-L'objectif est de créer un formulaire de profil complet qui servira de base à tous les calculs de l'application.
+1.  **Authentification Sécurisée** : Connexion via email/mot de passe avec Firebase Auth.
+2.  **Profil Utilisateur Personnalisé** :
+    *   Saisie des ratios personnels : Facteur de Sensibilité à l'Insuline (ISF), Ratio Glucides/Insuline (ICR).
+    *   Type d'insuline utilisée (basale et bolus).
+    *   Objectifs glycémiques (cible, seuil hypo/hyper).
+3.  **Calculateur de Bolus de Correction** :
+    *   L'utilisateur entre sa glycémie actuelle.
+    *   L'application calcule la dose d'insuline rapide nécessaire pour revenir à la cible, en se basant sur l'ISF du profil.
+4.  **Calculateur de Bolus de Repas (à venir)** :
+    *   L'utilisateur entre la quantité de glucides du repas.
+    *   L'application calcule la dose d'insuline nécessaire en se basant sur l'ICR.
 
-#### **Modèle de Données (`UserProfile`)**
-Un modèle `UserProfile` contiendra les informations suivantes :
-- **Informations générales**: `age`, `poids`, `typeDiabete`, `uniteGlycemie` (mg/dL ou mmol/L).
-- **Objectifs**: `glycemieCibleAJeun`, `glycemieCiblePostprandiale`.
-- **Traitement Insuline**:
-    - Marque et dose de l'insuline **basale** (lente).
-    - Marque et dose de l'insuline **bolus** (rapide).
-- **Ratios Personnalisés**:
-    - `isf` (Facteur de Sensibilité à l'Insuline), modifiable.
-    - `icr` (Ratio Insuline/Glucides), modifiable.
+---
 
-#### **Écran Profil (`profile_screen.dart`)**
-- Formulaire structuré pour saisir toutes les données du `UserProfile`.
-- **Calculs automatiques (pré-remplissage)** :
-    - `doseTotale` = dose basale + dose bolus.
-    - `isf` pré-rempli avec la formule `1800 / doseTotale`.
-    - `icr` pré-rempli avec la formule `500 / doseTotale`.
-- **Dropdowns pour les Insulines**:
-    - **Basale**: Lantus, Tresiba, Levemir, Toujeo, NPH.
-    - **Bolus**: NovoRapid, Humalog, Apidra, Fiasp.
-- **Bouton "Calculer mon ISF empirique"**:
-    - Ouvre un dialogue pour saisir 3 valeurs : glycémie avant, glycémie après, et dose administrée.
-    - Calcule et affiche l'ISF empirique avec un message explicatif.
-- **Sauvegarde**: Les données du profil seront sauvegardées dans une collection `users` sur Firestore, liée à l'UID de l'utilisateur.
+#### **4. Plan d'Action Initial**
 
-#### **Assistance IA Pédagogique**
-- Des messages explicatifs seront générés et affichés sous les champs ISF et ICR pour aider l'utilisateur à comprendre leur signification.
-
-### Étape 2 : Module de Correction Glycémique
-
-- **Flux**:
-    1. L'utilisateur accède à l'écran "Correction Glycémie".
-    2. Le système vérifie si le profil (et notamment l'ISF) est rempli.
-    3. **Si non**: Affiche un message invitant à remplir le profil, avec un bouton de redirection.
-    4. **Si oui**: Affiche le formulaire de correction avec les champs "Glycémie actuelle" et "Glycémie cible".
-- **Calcul**: La dose de correction sera calculée avec la formule : `(Glycémie actuelle - Glycémie cible) / ISF (personnalisé)`.
-- **Gestion Hyper/Hypoglycémie**: Des conseils spécifiques seront affichés en fonction du résultat.
-
-### Étape 3 : Module de Suivi des Repas (À venir)
-
-- Calcul du bolus de repas basé sur l'ICR de l'utilisateur.
-- Base de données alimentaire pour estimer les glucides.
-
-### Étape 4 : Historique et Rapports (À venir)
-
-- Graphiques et listes pour visualiser l'historique des glycémies, des doses d'insuline et des repas.
-- Export des données (CSV/PDF).
-
+1.  **Créer ce fichier `blueprint.md`** et le pousser sur GitHub.
+2.  **Nettoyer le projet Flutter initial** pour repartir sur une base propre.
+3.  **Intégrer Firebase** (Core, Auth, Firestore) dans le projet.
+4.  **Développer l'écran d'authentification** (login/création de compte).
+5.  **Développer l'écran du Profil Utilisateur**.
