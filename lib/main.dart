@@ -42,13 +42,11 @@ class MyApp extends StatelessWidget {
           colorScheme: const ColorScheme(
             primary: Color(0xFFAEE2FF), // Bleu ciel doux
             secondary: Color(0xFFC8F4C4), // Vert menthe clair
-            surface: Color(0xFFFFD8BE), // Peche pastel
-            background: Color(0xFFE4D9FF), // Lavande lumineuse
+            surface: Color(0xFFFFD8BE), // Lavande lumineuse
             error: Colors.red,
             onPrimary: Colors.black,
             onSecondary: Colors.black,
             onSurface: Colors.black,
-            onBackground: Colors.black,
             onError: Colors.white,
             brightness: Brightness.light,
           ),
