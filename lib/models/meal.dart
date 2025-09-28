@@ -1,34 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Meal {
-  String? id;
-  final String description;
+  final String? id;
+  final String food;
+  final int carbohydrates;
   final DateTime timestamp;
-  final String userId;
 
   Meal({
     this.id,
-    required this.description,
+    required this.food,
+    required this.carbohydrates,
     required this.timestamp,
-    required this.userId,
   });
 
-  // Convert Meal object to a Map
-  Map<String, dynamic> toMap() {
-    return {
-      'description': description,
-      'timestamp': Timestamp.fromDate(timestamp),
-      'userId': userId,
-    };
-  }
-
-  // Create a Meal object from a Map
-  factory Meal.fromMap(Map<String, dynamic> map, String id) {
+  // Crée un Meal à partir d'un document Firestore
+  factory Meal.fromJson(Map<String, dynamic> json, String id) {
     return Meal(
       id: id,
-      description: map['description'] as String,
-      timestamp: (map['timestamp'] as Timestamp).toDate(),
-      userId: map['userId'] as String,
+      food: json['food'] as String,
+      carbohydrates: json['carbohydrates'] as int,
+      timestamp: (json['timestamp'] as Timestamp).toDate(),
     );
+  }
+
+  // Convertit un Meal en JSON pour Firestore
+  Map<String, dynamic> toJson() {
+    return {
+      'food': food,
+      'carbohydrates': carbohydrates,
+      'timestamp': Timestamp.fromDate(timestamp),
+    };
   }
 }

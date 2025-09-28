@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:myapp/services/ai_service.dart';
 
@@ -87,7 +86,9 @@ class _AIExampleScreenState extends State<AIExampleScreen> {
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(_response.isEmpty && !_isLoading ? 'AI response will appear here.' : _response),
+                  child: Text(_response.isEmpty && !_isLoading
+                      ? 'AI response will appear here.'
+                      : _response),
                 ),
               ),
             ),

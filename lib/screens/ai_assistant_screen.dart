@@ -10,7 +10,8 @@ class AIAssistantScreen extends StatefulWidget {
 
 class _AIAssistantScreenState extends State<AIAssistantScreen> {
   final TextEditingController _promptController = TextEditingController();
-  final AIService _aiService = AIService(projectId: 'glycplus'); // Utilisation du bon Project ID
+  final AIService _aiService =
+      AIService(projectId: 'glycplus'); // Utilisation du bon Project ID
   String _response = "";
   bool _isLoading = false;
 
@@ -61,14 +62,17 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _isLoading ? null : _generateContent,
-              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+              style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12)),
               child: _isLoading
                   ? const SizedBox(
                       height: 24,
                       width: 24,
-                      child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 3, color: Colors.white),
                     )
-                  : const Text('Obtenir une reponse', style: TextStyle(fontSize: 16)),
+                  : const Text('Obtenir une reponse',
+                      style: TextStyle(fontSize: 16)),
             ),
             const SizedBox(height: 24),
             const Text(
@@ -84,7 +88,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(_response.isEmpty && !_isLoading ? 'La reponse de l\'IA apparaitra ici.' : _response),
+                  child: Text(_response.isEmpty && !_isLoading
+                      ? 'La reponse de l\'IA apparaitra ici.'
+                      : _response),
                 ),
               ),
             ),

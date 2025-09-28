@@ -1,34 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:glycplus/screens/history_screen.dart';
 import 'package:glycplus/screens/meal_tracking_screen.dart';
-import 'package:glycplus/screens/auth_screen.dart';
-import 'package:glycplus/screens/glucose_management_screen.dart';
+import 'package:glycplus/screens/hyper_screen.dart';
 import 'package:glycplus/screens/profile_screen.dart';
+import 'package:glycplus/screens/history_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final User user;
+
+  const DashboardScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    // Utilisation d'un message d'accueil plus personnalisé et sécurisé
-    final welcomeMessage = user?.displayName?.isNotEmpty == true
-        ? 'Bienvenue, ${user!.displayName}!'
-        : (user?.email?.isNotEmpty == true ? 'Bienvenue, ${user!.email}!' : 'Bienvenue !');
+    final welcomeMessage = user.displayName?.isNotEmpty == true
+        ? 'Bienvenue, ${user.displayName}!'
+        : (user.email?.isNotEmpty == true
+            ? 'Bienvenue, ${user.email}!'
+            : 'Bienvenue !');
 
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Un fond légèrement grisé pour un look plus doux
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text(
           'Tableau de Bord',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimary),
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onPrimary),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         elevation: 1,
         actions: [
           IconButton(
-            icon: Icon(Icons.person, color: Theme.of(context).colorScheme.onPrimary),
+            icon: Icon(Icons.person,
+                color: Theme.of(context).colorScheme.onPrimary),
             tooltip: 'Mon Profil',
             onPressed: () {
               Navigator.push(
@@ -38,15 +42,11 @@ class DashboardScreen extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: Icon(Icons.logout, color: Theme.of(context).colorScheme.onPrimary),
+            icon: Icon(Icons.logout,
+                color: Theme.of(context).colorScheme.onPrimary),
             tooltip: 'Déconnexion',
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              // Assurer que la redirection se fait correctement sans pouvoir revenir en arrière
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const AuthScreen()),
-                (Route<dynamic> route) => false,
-              );
             },
           ),
         ],
@@ -58,25 +58,32 @@ class DashboardScreen extends StatelessWidget {
           Text(
             welcomeMessage,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.black87),
+            style: Theme.of(context)
+                .textTheme
+                .headlineMedium
+                ?.copyWith(fontWeight: FontWeight.bold, color: Colors.black87),
           ),
           const SizedBox(height: 8),
           Text(
             "Prêt à mieux gérer votre diabète ?",
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.black54),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(color: Colors.black54),
           ),
           const SizedBox(height: 32),
-
-          // --- NOUVELLES CARTES DE NAVIGATION ---
           _buildDashboardCard(
             context,
-            title: 'Calculer un Bolus',
-            subtitle: 'Correction ou repas',
+            title: 'Correction Glycémie',
+            subtitle: 'Calculer une dose d\'insuline',
             icon: Icons.calculate_outlined,
             color: Theme.of(context).colorScheme.primary,
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const GlucoseManagementScreen()));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const HyperScreen()));
             },
           ),
           const SizedBox(height: 16),
@@ -87,8 +94,10 @@ class DashboardScreen extends StatelessWidget {
             icon: Icons.restaurant_menu_outlined,
             color: Theme.of(context).colorScheme.secondary,
             onTap: () {
-              // NAVIGATION ACTIVÉE
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const MealTrackingScreen()));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const MealTrackingScreen()));
             },
           ),
           const SizedBox(height: 16),
@@ -97,10 +106,12 @@ class DashboardScreen extends StatelessWidget {
             title: 'Mon Historique',
             subtitle: 'Consulter vos données',
             icon: Icons.bar_chart_outlined,
-            color: const Color(0xFFF2994A), // Une couleur orange pour la diversité
+            color: const Color(0xFFF2994A),
             onTap: () {
-              // NAVIGATION ACTIVÉE
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const HistoryScreen()));
             },
           ),
         ],
@@ -108,8 +119,8 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // --- WIDGET DE CARTE AMÉLIORÉ ---
-  Widget _buildDashboardCard(BuildContext context, {
+  Widget _buildDashboardCard(
+    BuildContext context, {
     required String title,
     required String subtitle,
     required IconData icon,
@@ -135,12 +146,18 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: Colors.black54),
                     ),
                   ],
                 ),

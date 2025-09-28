@@ -1,31 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../models/user_profile.dart';
-import '../services/firestore_service.dart';
-import '../models/insulin.dart';
-import 'advice_screen.dart';
-
-// --- AJOUT : Listes des marques d'insuline ---
-const List<String> basalInsulinBrands = [
-  'Lantus',
-  'Levemir',
-  'Toujeo',
-  'Tresiba',
-  'Basaglar',
-  'Abasaglar',
-];
-
-const List<String> bolusInsulinBrands = [
-  'NovoRapid',
-  'NovoLog',
-  'Humalog',
-  'Apidra',
-  'Fiasp',
-  'Lyumjev',
-];
-// --- FIN DE L'AJOUT ---
+import 'package:glycplus/services/firestore_service.dart';
+import 'package:glycplus/models/user_model.dart';
+import 'package:glycplus/models/insulin.dart';
+import 'package:glycplus/screens/hyper_screen.dart';
+import 'package:provider/provider.dart';
+import 'dart:developer' as developer;
+import 'package:flutter/scheduler.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -36,42 +17,35 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  UserProfile? _userProfile;
-  bool _isSaving = false;
 
-  // Controllers
-  final _pseudoController = TextEditingController();
+  // Controllers for TextFormFields
   final _ageController = TextEditingController();
   final _weightController = TextEditingController();
-  final _targetFastingController = TextEditingController();
-  final _targetPostprandialController = TextEditingController();
+  final _fastingTargetController = TextEditingController();
+  final _postprandialTargetController = TextEditingController();
   final _basalDoseController = TextEditingController();
   final _bolusDoseController = TextEditingController();
   final _isfController = TextEditingController();
   final _icrController = TextEditingController();
 
-  // Dropdown values
+  // Variables for Dropdowns
   String? _selectedDiabetesType;
-  String? _selectedGlucoseUnit = 'mg/dL'; // Default value
+  String? _selectedGlucoseUnit;
   String? _selectedBasalInsulin;
   String? _selectedBolusInsulin;
 
-  @override
-  void initState() {
-    super.initState();
-    _basalDoseController.addListener(_autoCalculateRatios);
-    _bolusDoseController.addListener(_autoCalculateRatios);
-  }
+  // Variable for total dose display
+  double _totalDose = 0.0;
+
+  // To prevent running calculations before the first build
+  bool _isFirstBuild = true;
 
   @override
   void dispose() {
-    _basalDoseController.removeListener(_autoCalculateRatios);
-    _bolusDoseController.removeListener(_autoCalculateRatios);
-    _pseudoController.dispose();
     _ageController.dispose();
     _weightController.dispose();
-    _targetFastingController.dispose();
-    _targetPostprandialController.dispose();
+    _fastingTargetController.dispose();
+    _postprandialTargetController.dispose();
     _basalDoseController.dispose();
     _bolusDoseController.dispose();
     _isfController.dispose();
@@ -79,95 +53,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _loadUserProfile(UserProfile? profile) {
-    if (profile == null) return;
-    _userProfile = profile;
+  void _updateCalculatedFields() {
+    final double basalDose = double.tryParse(_basalDoseController.text) ?? 0.0;
+    final double bolusDose = double.tryParse(_bolusDoseController.text) ?? 0.0;
+    final total = basalDose + bolusDose;
 
-    _pseudoController.text = profile.pseudo ?? '';
-    _ageController.text = profile.age?.toString() ?? '';
-    _weightController.text = profile.weight?.toString() ?? '';
-    _selectedDiabetesType = profile.diabetesType;
-    _selectedGlucoseUnit = profile.glucoseUnit ?? 'mg/dL';
-    _targetFastingController.text = profile.targetGlucoseFasting?.toString() ?? '';
-    _targetPostprandialController.text = profile.targetGlucosePostprandial?.toString() ?? '';
-    _selectedBasalInsulin = profile.basalInsulinBrand;
-    _basalDoseController.text = profile.basalInsulinDose?.toString() ?? '';
-    _selectedBolusInsulin = profile.bolusInsulinBrand;
-    _bolusDoseController.text = profile.bolusInsulinDose?.toString() ?? '';
-    _isfController.text = profile.isf?.toString() ?? '';
-    _icrController.text = profile.icr?.toString() ?? '';
-  }
-
-  void _autoCalculateRatios() {
-    final double basalDose = double.tryParse(_basalDoseController.text) ?? 0;
-    final double bolusDose = double.tryParse(_bolusDoseController.text) ?? 0;
-    final totalDose = basalDose + bolusDose;
-
-    if (totalDose > 0) {
-      double isf;
-      switch (_selectedGlucoseUnit ?? 'mg/dL') {
-        case 'mmol/L':
-          isf = 100 / totalDose;
-          break;
-        case 'g/dL':
-           isf = 1.8 / totalDose;
-           break;
-        case 'mg/dL':
-        default:
-          isf = 1800 / totalDose;
-          break;
-      }
-      
-      final icr = 500 / totalDose;
-      
-      if (isf.isFinite && !isf.isNegative) {
-        _isfController.text = isf.toStringAsFixed(1);
-      }
-      if (icr.isFinite && !icr.isNegative) {
-        _icrController.text = icr.toStringAsFixed(1);
-      }
-    } else {
-      _isfController.clear();
-      _icrController.clear();
+    if (mounted) {
+      setState(() {
+        _totalDose = total;
+        if (total > 0) {
+          _isfController.text = (1800 / total).toStringAsFixed(2);
+          _icrController.text = (500 / total).toStringAsFixed(2);
+        } else {
+          _isfController.text = '0.0';
+          _icrController.text = '0.0';
+        }
+      });
     }
   }
 
-  void _navigateToAdviceScreen() {
-    final double? isf = double.tryParse(_isfController.text);
-    final double? icr = double.tryParse(_icrController.text);
+  void _showEmpiricalIsfDialog() {
+    final beforeController = TextEditingController();
+    final afterController = TextEditingController();
+    final doseController = TextEditingController();
 
-    if (isf != null && icr != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AdviceScreen(
-            isf: isf,
-            icr: icr,
-            glucoseUnit: _selectedGlucoseUnit!,
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Calculer mon ISF empirique'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                  controller: beforeController,
+                  decoration: const InputDecoration(
+                      labelText: 'Glycémie avant correction'),
+                  keyboardType: TextInputType.number),
+              TextFormField(
+                  controller: afterController,
+                  decoration: const InputDecoration(
+                      labelText: 'Glycémie après correction (2h)'),
+                  keyboardType: TextInputType.number),
+              TextFormField(
+                  controller: doseController,
+                  decoration: const InputDecoration(
+                      labelText: 'Dose d\'insuline administrée'),
+                  keyboardType: TextInputType.number),
+            ],
           ),
-        ),
-      );
-    } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Les ratios n\'ont pas pu être calculés. Veuillez vérifier les doses d\'insuline.'), backgroundColor: Colors.orange),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Annuler')),
+            ElevatedButton(
+              onPressed: () {
+                final double? before = double.tryParse(beforeController.text);
+                final double? after = double.tryParse(afterController.text);
+                final double? dose = double.tryParse(doseController.text);
+
+                if (before != null && after != null && dose != null && dose > 0) {
+                  final double empiricalIsf = (before - after) / dose;
+                  Navigator.of(context).pop(); // Close the first dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Résultat'),
+                      content: Text(
+                          'Votre ISF empirique est de ${empiricalIsf.toStringAsFixed(2)} mg/dL.\n\nCela signifie qu’une unité d\'insuline rapide fait baisser votre glycémie d\'environ ${empiricalIsf.toStringAsFixed(2)} mg/dL.'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('Fermer')),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _isfController.text =
+                                  empiricalIsf.toStringAsFixed(2);
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Utiliser cette valeur'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              child: const Text('Calculer'),
+            ),
+          ],
         );
-    }
+      },
+    );
   }
 
-  Future<void> _saveProfile(User user) async {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      setState(() => _isSaving = true);
+      final user = Provider.of<User?>(context, listen: false);
+      final firestoreService =
+          Provider.of<FirestoreService>(context, listen: false);
 
-      final profile = UserProfile(
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erreur : Utilisateur non connecté')));
+        return;
+      }
+
+      final profile = UserModel(
         uid: user.uid,
-        pseudo: _pseudoController.text,
+        email: user.email,
         age: int.tryParse(_ageController.text),
         weight: double.tryParse(_weightController.text),
         diabetesType: _selectedDiabetesType,
         glucoseUnit: _selectedGlucoseUnit,
-        targetGlucoseFasting: double.tryParse(_targetFastingController.text),
-        targetGlucosePostprandial: double.tryParse(_targetPostprandialController.text),
+        fastingTargetGlucose: double.tryParse(_fastingTargetController.text),
+        postprandialTargetGlucose:
+            double.tryParse(_postprandialTargetController.text),
         basalInsulinBrand: _selectedBasalInsulin,
         basalInsulinDose: double.tryParse(_basalDoseController.text),
         bolusInsulinBrand: _selectedBolusInsulin,
@@ -177,287 +180,226 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
       try {
-        await Provider.of<FirestoreService>(context, listen: false).setUserProfile(profile);
+        await firestoreService.setUserProfile(profile);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil enregistré avec succès !'), backgroundColor: Color(0xFF27AE60)),
+            const SnackBar(content: Text('Profil sauvegardé avec succès !')));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HyperScreen()),
         );
-        // Redirect if needed
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
       } catch (e) {
+        developer.log('Error saving profile: $e', name: 'profile_screen');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la sauvegarde: $e'), backgroundColor: Colors.red),
-        );
+            SnackBar(content: Text('Erreur lors de la sauvegarde : $e')));
       }
-
-      setState(() => _isSaving = false);
     }
   }
 
-  Future<void> _showEmpiricalIsfDialog() async {
-    final formKey = GlobalKey<FormState>();
-    final beforeController = TextEditingController();
-    final afterController = TextEditingController();
-    final doseController = TextEditingController();
+  void _populateFields(UserModel userProfile) {
+    final basalInsulinBrands = basalInsulins.map((e) => e.brandName).toList();
+    final bolusInsulinBrands = bolusInsulins.map((e) => e.brandName).toList();
+    final diabetesTypes = ['Type 1', 'Type 2', 'Type 2 (insulino-dépendant)', 'LADA', 'Autre'];
 
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Calculer mon ISF Empirique',
-            style: TextStyle(fontSize: 20, color: Color(0xFF2D9CDB), fontWeight: FontWeight.bold),
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildTextFormField(beforeController, 'Glycémie avant correction', TextInputType.number, prefixIcon: Icons.arrow_upward),
-                const SizedBox(height: 24),
-                _buildTextFormField(afterController, 'Glycémie après (2h)', TextInputType.number, prefixIcon: Icons.arrow_downward),
-                const SizedBox(height: 24),
-                _buildTextFormField(doseController, 'Dose d\'insuline rapide (unités)', TextInputType.number, prefixIcon: Icons.opacity),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler', style: TextStyle(fontSize: 16, color: Colors.black54)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  final before = double.parse(beforeController.text);
-                  final after = double.parse(afterController.text);
-                  final dose = double.parse(doseController.text);
-                  if (dose > 0 && before > after) {
-                    final isf = (before - after) / dose;
-                    _isfController.text = isf.toStringAsFixed(1);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Votre ISF empirique calculé est de ${isf.toStringAsFixed(1)}. Il a été mis à jour dans le formulaire.'),
-                        backgroundColor: const Color(0xFF2D9CDB),
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2D9CDB),
-                foregroundColor: Colors.white,
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Calculer et Utiliser'),
-            ),
-          ],
-        );
-      },
-    );
+    _ageController.text = userProfile.age?.toString() ?? '';
+    _weightController.text = userProfile.weight?.toString() ?? '';
+    _fastingTargetController.text = userProfile.fastingTargetGlucose?.toString() ?? '';
+    _postprandialTargetController.text = userProfile.postprandialTargetGlucose?.toString() ?? '';
+    _basalDoseController.text = userProfile.basalInsulinDose?.toString() ?? '';
+    _bolusDoseController.text = userProfile.bolusInsulinDose?.toString() ?? '';
+    _isfController.text = userProfile.isf?.toString() ?? '';
+    _icrController.text = userProfile.icr?.toString() ?? '';
+
+    _selectedGlucoseUnit = userProfile.glucoseUnit ?? 'mg/dL';
+
+    if (diabetesTypes.contains(userProfile.diabetesType)) {
+      _selectedDiabetesType = userProfile.diabetesType;
+    }
+    if (basalInsulinBrands.contains(userProfile.basalInsulinBrand)) {
+      _selectedBasalInsulin = userProfile.basalInsulinBrand;
+    }
+    if (bolusInsulinBrands.contains(userProfile.bolusInsulinBrand)) {
+      _selectedBolusInsulin = userProfile.bolusInsulinBrand;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<User?>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final firestoreService = Provider.of<FirestoreService>(context);
+    final user = Provider.of<User?>(context);
+
+    final basalInsulinBrands = basalInsulins.map((e) => e.brandName).toList();
+    final bolusInsulinBrands = bolusInsulins.map((e) => e.brandName).toList();
+    final diabetesTypes = ['Type 1', 'Type 2', 'Type 2 (insulino-dépendant)', 'LADA', 'Autre'];
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Mon Profil', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF2D9CDB),
-        elevation: 4,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: StreamBuilder<UserProfile?>(
-        stream: firestoreService.getUserProfileStream(user!.uid),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF2D9CDB)));
-          }
-          if (snapshot.hasData && _userProfile == null) {
-            _loadUserProfile(snapshot.data);
-          }
-          return _buildProfileForm(user);
-        },
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: ElevatedButton.icon(
-          onPressed: _isSaving ? null : (() => _saveProfile(user!)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF27AE60),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          icon: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Icon(Icons.save),
-          label: const Text('Sauvegarder les modifications'),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      appBar: AppBar(title: const Text('Mon Profil')),
+      body: user == null
+          ? const Center(child: Text('Veuillez vous connecter.'))
+          : StreamBuilder<UserModel>(
+              stream: firestoreService.getUserProfileStream(user.uid),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasData && _isFirstBuild) {
+                  final userProfile = snapshot.data!;
+                   SchedulerBinding.instance.addPostFrameCallback((_) {
+                     _populateFields(userProfile);
+                     _updateCalculatedFields();
+                     if(mounted) setState(() => _isFirstBuild = false);
+                   });
+                }
+
+                return Form(
+                  key: _formKey,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16.0),
+                    children: [
+                      _buildSectionTitle('Profil Utilisateur'),
+                      TextFormField(
+                          controller: _ageController,
+                          decoration: const InputDecoration(labelText: 'Âge'),
+                          keyboardType: TextInputType.number),
+                      TextFormField(
+                          controller: _weightController,
+                          decoration: const InputDecoration(labelText: 'Poids (kg)'),
+                          keyboardType: TextInputType.number),
+                      DropdownButtonFormField<String>(
+                        value: _selectedDiabetesType,
+                        decoration:
+                            const InputDecoration(labelText: 'Type de diabète'),
+                        items: diabetesTypes.map((String value) {
+                          return DropdownMenuItem<String>(
+                              value: value, child: Text(value));
+                        }).toList(),
+                        onChanged: (newValue) =>
+                            setState(() => _selectedDiabetesType = newValue),
+                      ),
+                      DropdownButtonFormField<String>(
+                        value: _selectedGlucoseUnit,
+                        decoration:
+                            const InputDecoration(labelText: 'Unité Glycémie'),
+                        items: ['mg/dL', 'mmol/L'].map((String value) {
+                          return DropdownMenuItem<String>(
+                              value: value, child: Text(value));
+                        }).toList(),
+                        onChanged: (newValue) =>
+                            setState(() => _selectedGlucoseUnit = newValue),
+                        validator: (value) =>
+                            value == null ? 'Champ requis' : null,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildSectionTitle('Objectifs Glycémiques'),
+                      TextFormField(
+                          controller: _fastingTargetController,
+                          decoration: const InputDecoration(
+                              labelText: 'Glycémie cible à jeun'),
+                          keyboardType: TextInputType.number),
+                      TextFormField(
+                          controller: _postprandialTargetController,
+                          decoration: const InputDecoration(
+                              labelText: 'Glycémie cible postprandiale'),
+                          keyboardType: TextInputType.number),
+                      const SizedBox(height: 20),
+                      _buildSectionTitle('Insuline'),
+                      DropdownButtonFormField<String>(
+                        value: _selectedBasalInsulin,
+                        decoration:
+                            const InputDecoration(labelText: 'Basale (lente)'),
+                        items: basalInsulinBrands.map((String brand) {
+                          return DropdownMenuItem<String>(
+                              value: brand, child: Text(brand));
+                        }).toList(),
+                        onChanged: (newValue) =>
+                            setState(() => _selectedBasalInsulin = newValue),
+                      ),
+                      TextFormField(
+                          controller: _basalDoseController,
+                          decoration: const InputDecoration(
+                              labelText: 'Dose journalière (Basale)'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => _updateCalculatedFields(),
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        value: _selectedBolusInsulin,
+                        decoration:
+                            const InputDecoration(labelText: 'Bolus (rapide)'),
+                        items: bolusInsulinBrands.map((String brand) {
+                          return DropdownMenuItem<String>(
+                              value: brand, child: Text(brand));
+                        }).toList(),
+                        onChanged: (newValue) =>
+                            setState(() => _selectedBolusInsulin = newValue),
+                      ),
+                      TextFormField(
+                          controller: _bolusDoseController,
+                          decoration: const InputDecoration(
+                              labelText: 'Dose journalière (Bolus)'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => _updateCalculatedFields(),
+                      ),
+                      const SizedBox(height: 20),
+                      _buildSectionTitle('Calcul Automatique'),
+                      Text(
+                          'Dose totale journalière: ${_totalDose.toStringAsFixed(1)} unités',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                          controller: _isfController,
+                          decoration: const InputDecoration(
+                              labelText: 'Facteur de Sensibilité (ISF)'),
+                          keyboardType: TextInputType.number),
+                      _buildInfoCard(
+                          'L\'ISF indique de combien votre glycémie baisse (en ${_selectedGlucoseUnit ?? 'mg/dL'}) pour 1 unité d\'insuline rapide.'),
+                      ElevatedButton(
+                          onPressed: _showEmpiricalIsfDialog,
+                          child: const Text('Calculer mon ISF empirique')),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                          controller: _icrController,
+                          decoration: const InputDecoration(
+                              labelText: 'Ratio Insuline/Glucides (ICR)'),
+                          keyboardType: TextInputType.number),
+                      _buildInfoCard(
+                          'L\'ICR indique combien de grammes de glucides sont couverts par 1 unité d\'insuline rapide.'),
+                      const SizedBox(height: 30),
+                      ElevatedButton(
+                        onPressed: _saveProfile,
+                        style: ElevatedButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 16)),
+                        child: const Text('Sauvegarder et Aller à la Correction'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 
-  Widget _buildProfileForm(User user) {
-    return Form(
-      key: _formKey,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 100.0), // Add padding to bottom
-        children: <Widget>[
-          _buildSectionTitle('Profil Utilisateur'),
-          _buildTextFormField(_pseudoController, 'Pseudo', TextInputType.text, prefixIcon: Icons.person),
-          const SizedBox(height: 24),
-          _buildTextFormField(_ageController, 'Âge', TextInputType.number, prefixIcon: Icons.cake),
-          const SizedBox(height: 24),
-          _buildTextFormField(_weightController, 'Poids (kg)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.monitor_weight),
-          const SizedBox(height: 24),
-          _buildDropdownFormField(
-            value: _selectedDiabetesType,
-            items: ['Type 1', 'Type 2 (insulino-dépendant)', 'LADA', 'Autre'],
-            label: 'Type de diabète',
-            onChanged: (value) => setState(() => _selectedDiabetesType = value),
-          ),
-          const SizedBox(height: 24),
-          _buildDropdownFormField(
-            value: _selectedGlucoseUnit,
-            items: ['mg/dL', 'mmol/L', 'g/dL'],
-            label: 'Unité de Glycémie',
-            onChanged: (value) {
-              setState(() => _selectedGlucoseUnit = value);
-              _autoCalculateRatios();
-            },
-          ),
-          const Divider(height: 50, thickness: 1, color: Color(0xFFE0E0E0)),
-          _buildSectionTitle('Objectifs Glycémiques'),
-          _buildTextFormField(_targetFastingController, 'Cible à jeun', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.wb_sunny_outlined, suffixText: _selectedGlucoseUnit),
-          const SizedBox(height: 24),
-          _buildTextFormField(_targetPostprandialController, 'Cible postprandiale', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.fastfood_outlined, suffixText: _selectedGlucoseUnit),
-          const Divider(height: 50, thickness: 1, color: Color(0xFFE0E0E0)),
-          _buildSectionTitle('Traitement Insuline'),
-          _buildDropdownFormField(value: _selectedBasalInsulin, items: basalInsulinBrands, label: 'Insuline Lente (Basale)', onChanged: (v) => setState(() => _selectedBasalInsulin = v)),
-          const SizedBox(height: 24),
-          _buildTextFormField(_basalDoseController, 'Dose journalière (unités)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.timelapse),
-          const SizedBox(height: 32),
-          _buildDropdownFormField(value: _selectedBolusInsulin, items: bolusInsulinBrands, label: 'Insuline Rapide (Bolus)', onChanged: (v) => setState(() => _selectedBolusInsulin = v)),
-          const SizedBox(height: 24),
-          _buildTextFormField(_bolusDoseController, 'Dose journalière (unités)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.speed),
-          const Divider(height: 50, thickness: 1, color: Color(0xFFE0E0E0)),
-          _buildSectionTitle('Ratios de Calcul Personnalisés'),
-          _buildTextFormField(_isfController, 'Facteur de Sensibilité (ISF)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.straighten, suffixText: '${_selectedGlucoseUnit ?? 'mg/dL'}/U'),
-          _buildInfoCard('L\'ISF (ou facteur de sensibilité) indique de combien votre glycémie baisse (en ${_selectedGlucoseUnit ?? 'mg/dL'}) pour 1 unité d\'insuline rapide.'),
-          const SizedBox(height: 32),
-          _buildTextFormField(_icrController, 'Ratio Glucides/Insuline (ICR)', const TextInputType.numberWithOptions(decimal: true), prefixIcon: Icons.rice_bowl, suffixText: 'g/U'),
-          _buildInfoCard('L\'ICR représente le nombre de grammes de glucides couverts par 1 unité d\'insuline rapide.'),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.calculate_outlined),
-              label: const Text('Calculer mon ISF Empirique'),
-              onPressed: _showEmpiricalIsfDialog,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2D9CDB),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.analytics_outlined),
-              label: const Text('Voir les conseils pour mes ratios'),
-              onPressed: _navigateToAdviceScreen,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2D9CDB).withOpacity(0.9),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(title, style: Theme.of(context).textTheme.titleLarge),
     );
   }
 
-  Widget _buildSectionTitle(String title) => Padding(
-        padding: const EdgeInsets.only(bottom: 24.0, top: 8.0),
-        child: Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
-      );
-
-  Widget _buildTextFormField(TextEditingController controller, String label, TextInputType keyboardType, {IconData? prefixIcon, String? suffixText}) => TextFormField(
-        controller: controller,
-        style: const TextStyle(fontSize: 16, color: Colors.black87),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(fontSize: 16, color: Colors.black54),
-          prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: const Color(0xFF2D9CDB)) : null,
-          suffixText: suffixText,
-          filled: true,
-          fillColor: const Color(0xFFF5F5F5),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D9CDB), width: 2)),
-          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        ),
-        keyboardType: keyboardType,
-        validator: (value) {
-          if (value == null || value.isEmpty) return 'Ce champ est recommandé.';
-          if (keyboardType == TextInputType.number || keyboardType == const TextInputType.numberWithOptions(decimal: true)) {
-            if (num.tryParse(value) == null) return 'Veuillez entrer un nombre valide.';
-            if ((num.tryParse(value) ?? -1) < 0) return 'Veuillez entrer une valeur positive.';
-          }
-          return null;
-        },
-      );
-
-  Widget _buildDropdownFormField({required String? value, required List<String> items, required String label, required void Function(String?) onChanged}) =>
-      DropdownButtonFormField<String>(
-        value: value,
-        style: const TextStyle(fontSize: 16, color: Colors.black87),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(fontSize: 16, color: Colors.black54),
-          filled: true,
-          fillColor: const Color(0xFFF5F5F5),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2D9CDB), width: 2)),
-          contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        ),
-        dropdownColor: Colors.white,
-        items: items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item, style: const TextStyle(color: Colors.black87)))).toList(),
-        onChanged: onChanged,
-      );
-
-  Widget _buildInfoCard(String message) => Container(
-        margin: const EdgeInsets.only(top: 12.0),
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2D9CDB).withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2D9CDB).withOpacity(0.2)),
-        ),
+  Widget _buildInfoCard(String message) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.info_outline, color: Color(0xFF2D9CDB), size: 22),
-            const SizedBox(width: 16),
-            Expanded(child: Text(message, style: const TextStyle(color: Colors.black87, fontSize: 16, height: 1.5))),
+            const Icon(Icons.info_outline, color: Colors.blue),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontSize: 12))),
           ],
         ),
-      );
+      ),
+    );
+  }
 }

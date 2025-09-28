@@ -1,11 +1,13 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math';
 
-import '../models/user_profile.dart';
+import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 import 'profile_screen.dart';
+
+enum CorrectionState { none, hyper, hypo, error, inRange }
 
 class HyperScreen extends StatefulWidget {
   const HyperScreen({super.key});
@@ -19,9 +21,55 @@ class _HyperScreenState extends State<HyperScreen> {
   final _currentGlucoseController = TextEditingController();
   final _targetGlucoseController = TextEditingController();
 
-  String? _correctionMessage;
+  CorrectionState _correctionState = CorrectionState.none;
+  String? _resultMessage;
+  double _calculatedValue = 0;
   bool _isLoading = false;
-  bool _showProfileButton = false;
+  bool _disclaimerAccepted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showDisclaimerDialog();
+    });
+  }
+
+  void _showDisclaimerDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.amber),
+              SizedBox(width: 10),
+              Text('Avertissement', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const SingleChildScrollView(
+            child: Text(
+              'Les recommandations fournies par cette application sont des estimations et ne remplacent en aucun cas un avis médical professionnel. Consultez toujours votre médecin pour toute décision concernant votre traitement.',
+              textAlign: TextAlign.justify,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("J'accepte", style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () {
+                setState(() {
+                  _disclaimerAccepted = true;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   void dispose() {
@@ -30,27 +78,42 @@ class _HyperScreenState extends State<HyperScreen> {
     super.dispose();
   }
 
-  Future<void> _calculateCorrection(UserProfile userProfile) async {
+  Future<void> _calculateCorrection(UserModel userProfile) async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
-        _correctionMessage = null;
-        _showProfileButton = false;
+        _correctionState = CorrectionState.none;
+        _resultMessage = null;
       });
 
       final currentGlucose = double.parse(_currentGlucoseController.text);
       final targetGlucose = double.parse(_targetGlucoseController.text);
       final isf = userProfile.isf;
+      final icr = userProfile.icr;
 
       if (isf == null || isf <= 0) {
-        _correctionMessage = 'Erreur : Le Facteur de Sensibilité (ISF) est invalide ou non défini dans votre profil. Veuillez le configurer.';
-        _showProfileButton = true;
+        _correctionState = CorrectionState.error;
+        _resultMessage = 'Facteur de Sensibilité (ISF) invalide. Veuillez le configurer dans votre profil.';
       } else if (currentGlucose > targetGlucose) {
         final difference = currentGlucose - targetGlucose;
         final correction = difference / isf;
-        _correctionMessage = 'Correction suggérée : ${correction.toStringAsFixed(1)} unités d\'insuline pour une baisse de ${difference.toStringAsFixed(0)} ${userProfile.glucoseUnit}.';
+        _correctionState = CorrectionState.hyper;
+        _calculatedValue = correction;
+        _resultMessage = '${correction.toStringAsFixed(1)} unités';
+      } else if (currentGlucose < targetGlucose) {
+        if (icr == null || icr <= 0) {
+          _correctionState = CorrectionState.error;
+          _resultMessage = 'Ratio Insuline/Glucides (ICR) non défini. Configurez-le pour les calculs d\'hypoglycémie.';
+        } else {
+          final difference = targetGlucose - currentGlucose;
+          final carbsNeeded = (difference / isf) * icr;
+          _correctionState = CorrectionState.hypo;
+          _calculatedValue = carbsNeeded;
+          _resultMessage = '${carbsNeeded.toStringAsFixed(0)}g de glucides';
+        }
       } else {
-        _correctionMessage = 'Votre glycémie est dans ou en dessous de la cible. Aucune correction nécessaire.';
+        _correctionState = CorrectionState.inRange;
+        _resultMessage = 'Votre glycémie est à la cible.';
       }
 
       setState(() {
@@ -72,7 +135,7 @@ class _HyperScreenState extends State<HyperScreen> {
       appBar: AppBar(
         title: const Text('Correction de Glycémie'),
       ),
-      body: StreamBuilder<UserProfile?>(
+      body: StreamBuilder<UserModel?>(
         stream: firestoreService.getUserProfileStream(user.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -86,9 +149,9 @@ class _HyperScreenState extends State<HyperScreen> {
           }
 
           if (_targetGlucoseController.text.isEmpty) {
-            _targetGlucoseController.text = (userProfile.targetGlucoseFasting ?? '100').toString();
+            _targetGlucoseController.text = (userProfile.fastingTargetGlucose ?? 100).toString();
           }
-          
+
           return _buildCorrectionForm(userProfile);
         },
       ),
@@ -132,95 +195,197 @@ class _HyperScreenState extends State<HyperScreen> {
     );
   }
 
-  Widget _buildCorrectionForm(UserProfile userProfile) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Form(
-        key: _formKey,
+  Widget _buildCorrectionForm(UserModel userProfile) {
+    return AbsorbPointer(
+      absorbing: !_disclaimerAccepted,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Opacity(
+          opacity: _disclaimerAccepted ? 1.0 : 0.5,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  'Assistant de Correction',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Entrez vos glycémies pour obtenir une recommandation.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                _buildTextFormField(
+                  controller: _currentGlucoseController,
+                  labelText: 'Glycémie Actuelle (${userProfile.glucoseUnit ?? 'mg/dL'})',
+                  icon: Icons.bloodtype,
+                ),
+                const SizedBox(height: 16),
+                _buildTextFormField(
+                  controller: _targetGlucoseController,
+                  labelText: 'Glycémie Cible (${userProfile.glucoseUnit ?? 'mg/dL'})',
+                  icon: Icons.gps_fixed,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.calculate),
+                  label: const Text('Calculer'),
+                  onPressed: (_isLoading || !_disclaimerAccepted) ? null : () => _calculateCorrection(userProfile),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                if (_isLoading) const Center(child: CircularProgressIndicator()),
+                if (_resultMessage != null) _buildResultCard(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultCard() {
+    IconData icon;
+    Color color;
+    String title;
+
+    switch (_correctionState) {
+      case CorrectionState.hyper:
+        icon = Icons.arrow_downward;
+        color = Colors.red.shade700;
+        title = 'Correction Hyperglycémie';
+        break;
+      case CorrectionState.hypo:
+        icon = Icons.local_cafe_outlined;
+        color = Theme.of(context).primaryColor;
+        title = 'Correction Hypoglycémie';
+        break;
+      case CorrectionState.inRange:
+        icon = Icons.check_circle_outline;
+        color = Colors.green.shade700;
+        title = 'Glycémie Stable';
+        break;
+      case CorrectionState.error:
+        icon = Icons.error_outline;
+        color = Colors.red.shade900;
+        title = 'Erreur de Profil';
+        break;
+      default:
+        return const SizedBox.shrink();
+    }
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Text(
-              'Assistant de Correction',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.bold,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: color, size: 40),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    _resultMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-              textAlign: TextAlign.center,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-             Text(
-              'Entrez vos glycémies pour obtenir une recommandation de dose.',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            _buildTextFormField(
-              controller: _currentGlucoseController,
-              labelText: 'Glycémie Actuelle (${userProfile.glucoseUnit ?? 'mg/dL'})',
-              icon: Icons.bloodtype,
-            ),
-            const SizedBox(height: 16),
-            _buildTextFormField(
-              controller: _targetGlucoseController,
-              labelText: 'Glycémie Cible (${userProfile.glucoseUnit ?? 'mg/dL'})',
-              icon: Icons.gps_fixed,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.calculate), 
-              label: const Text('Calculer la Correction'), 
-              onPressed: _isLoading ? null : () => _calculateCorrection(userProfile),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-            const SizedBox(height: 32),
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator()),
-            if (_correctionMessage != null)
-              Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: _showProfileButton ? Colors.red.withOpacity(0.1) : Theme.of(context).primaryColor.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _showProfileButton ? Colors.red : Theme.of(context).primaryColor, width: 1),
-                    ),
-                    child: SelectableText( 
-                      _correctionMessage!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: _showProfileButton ? Colors.red.shade900 : Theme.of(context).textTheme.bodyLarge?.color,
-                        height: 1.5, 
-                      ),
-                    ),
-                  ),
-                  if (_showProfileButton)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Configurer mon Profil'),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                          ).then((_) => setState(() {
-                            _correctionMessage = null;
-                            _showProfileButton = false;
-                            _currentGlucoseController.clear();
-                          }));
-                        },
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      ),
-                    ),
-                ],
+            if (_correctionState == CorrectionState.hypo)
+              _buildHypoSuggestions(),
+            if (_correctionState == CorrectionState.error)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Configurer mon Profil'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    ).then((_) => setState(() {
+                          _correctionState = CorrectionState.none;
+                          _resultMessage = null;
+                          _currentGlucoseController.clear();
+                        }));
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: color),
+                ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHypoSuggestions() {
+    final carbsNeeded = _calculatedValue;
+    final suggestions = [
+      {'name': 'Morceaux de sucre', 'icon': Icons.widgets_outlined, 'carbs_per_unit': 5.0, 'unit_name': 'morceau'},
+      {'name': 'Jus de fruits', 'icon': Icons.local_drink_outlined, 'carbs_per_unit': 10.0, 'unit_name': 'verre de 10cl'},
+      {'name': 'Miel', 'icon': Icons.opacity, 'carbs_per_unit': 12.0, 'unit_name': 'c. à soupe'},
+      {'name': 'Bonbons', 'icon': Icons.cake_outlined, 'carbs_per_unit': 4.0, 'unit_name': 'bonbon'},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Text('Suggestions de resucrage', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: suggestions.map((suggestion) {
+              final double carbsPerUnit = (suggestion['carbs_per_unit'] as num).toDouble();
+              final count = (carbsNeeded / carbsPerUnit).ceil();
+              final unitName = suggestion['unit_name'] as String;
+
+              return _buildFoodSuggestionCard(
+                icon: suggestion['icon'] as IconData,
+                name: suggestion['name'] as String,
+                quantity: '$count $unitName${count > 1 ? 's' : ''}',
+                color: Theme.of(context).primaryColor,
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFoodSuggestionCard({required IconData icon, required String name, required String quantity, required Color color}) {
+    return SizedBox(
+      width: 130,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              Icon(icon, size: 32, color: color),
+              const SizedBox(height: 8),
+              Text(name, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(quantity, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
+            ],
+          ),
         ),
       ),
     );
@@ -250,6 +415,7 @@ class _HyperScreenState extends State<HyperScreen> {
         }
         return null;
       },
+      enabled: _disclaimerAccepted,
     );
   }
 }

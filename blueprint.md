@@ -1,45 +1,36 @@
-### **Blueprint du Projet : Glyc'Plus**
+# Blueprint de l'Application GlucoGuard
 
-#### **1. Vue d'Ensemble**
+## Aperçu
 
-**Objectif** : Créer une application mobile, moderne et intuitive pour aider les personnes diabétiques (en particulier de type 1) à gérer leur traitement. L'application se concentrera sur des calculs précis, une interface claire et une aide à la décision pour améliorer le contrôle glycémique au quotidien.
+GlucoGuard est une application mobile conçue pour aider les utilisateurs à suivre et à gérer leur taux de glucose. L'application s'intègre à Firebase pour l'authentification des utilisateurs, le stockage des données et d'autres services back-end.
 
-**Principes Clés** : Simplicité, Fiabilité, Éducation, Sécurité des données.
+## Fonctionnalités Implémentées
 
----
+*   **Nettoyage du Projet :**
+    *   Suppression du dossier `glycplus` dupliqué pour une structure de projet propre.
+*   **Intégration de Firebase :**
+    *   Ajout des dépendances Firebase (`firebase_core`, `firebase_auth`, `cloud_firestore`).
+    *   Configuration de l'initialisation de Firebase dans `lib/main.dart`.
+    *   Vérification de la présence du fichier de configuration Android (`google-services.json`).
+*   **Thème et Style :**
+    *   Ajout des dépendances `google_fonts` et `provider`.
+    *   Mise en place d'un système de thème moderne (Material 3) avec `ColorScheme.fromSeed`.
+    *   Définition de thèmes clair et sombre avec une typographie personnalisée via `google_fonts`.
+    *   Implémentation d'un `ThemeProvider` pour permettre le changement de thème.
+*   **Authentification :**
+    *   Création d'un écran d'authentification (`auth_screen.dart`) avec des champs pour l'email et le mot de passe, et la logique pour basculer entre la connexion et l'inscription.
+    *   Implémentation d'un `AuthService` pour gérer la communication avec Firebase Auth, y compris les méthodes `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`, et `signOut`.
+    *   Création d'un écran de tableau de bord (`dashboard_screen.dart`) accessible après la connexion, affichant un message de bienvenue et un bouton de déconnexion.
+    *   Mise en place d'un `AuthWrapper` pour gérer la redirection de l'utilisateur en fonction de son état d'authentification.
 
-#### **2. Identité Visuelle et Design**
+## Plan d'Action Actuel
 
-*   **Thème** : Moderne, épuré et rassurant. Utilisation de Material Design 3.
-*   **Palette de Couleurs** :
-    *   **Primaire** : Un bleu médical apaisant.
-    *   **Secondaire** : Des touches de vert pour les succès et la santé.
-    *   **Alertes** : Orange pour les hypoglycémies, rouge pour les hyperglycémies sévères.
-*   **Typographie** : Police claire et lisible (par exemple, Google Fonts `Roboto` ou `Open Sans`).
-*   **Iconographie** : Icônes Material claires et compréhensibles.
+*   **Améliorer l'interface utilisateur (UI) du tableau de bord :**
+    *   Concevoir un tableau de bord plus informatif et visuellement attrayant pour afficher les données de glucose.
+*   **Mettre en place la Logique Métier pour le Glucose :**
+    *   Développer les fonctionnalités de lecture, d'écriture, de mise à jour et de suppression des données de glucose dans `firestore_service.dart`.
+    *   Créer un modèle de données `GlucoseReading` pour représenter les mesures de glucose.
+*   **Ajouter des fonctionnalités de suivi :**
+    *   Implémenter la saisie manuelle des données de glucose.
+    *   Afficher un historique des mesures de glucose sous forme de liste ou de graphique.
 
----
-
-#### **3. Fonctionnalités Principales (MVP - Version 1.0)**
-
-1.  **Authentification Sécurisée** : Connexion via email/mot de passe avec Firebase Auth.
-2.  **Profil Utilisateur Personnalisé** :
-    *   Saisie des ratios personnels : Facteur de Sensibilité à l'Insuline (ISF), Ratio Glucides/Insuline (ICR).
-    *   Type d'insuline utilisée (basale et bolus).
-    *   Objectifs glycémiques (cible, seuil hypo/hyper).
-3.  **Calculateur de Bolus de Correction** :
-    *   L'utilisateur entre sa glycémie actuelle.
-    *   L'application calcule la dose d'insuline rapide nécessaire pour revenir à la cible, en se basant sur l'ISF du profil.
-4.  **Calculateur de Bolus de Repas (à venir)** :
-    *   L'utilisateur entre la quantité de glucides du repas.
-    *   L'application calcule la dose d'insuline nécessaire en se basant sur l'ICR.
-
----
-
-#### **4. Plan d'Action Initial**
-
-1.  **Créer ce fichier `blueprint.md`** et le pousser sur GitHub.
-2.  **Nettoyer le projet Flutter initial** pour repartir sur une base propre.
-3.  **Intégrer Firebase** (Core, Auth, Firestore) dans le projet.
-4.  **Développer l'écran d'authentification** (login/création de compte).
-5.  **Développer l'écran du Profil Utilisateur**.

@@ -34,14 +34,19 @@ class AnalysisReportsScreen extends StatelessWidget {
               label: const Text('Exporter en CSV'),
               onPressed: () async {
                 if (user != null) {
-                  final timelineItems = await firestoreService.getTimelineStream(user.uid).first;
-                  final path = await csvExportService.exportTimelineToCsv(timelineItems);
+                  final timelineItems =
+                      await firestoreService.getTimelineStream(user.uid).first;
+                  final path =
+                      await csvExportService.exportTimelineToCsv(timelineItems);
                   scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('Fichier CSV sauvegardé ici : $path')),
+                    SnackBar(
+                        content: Text('Fichier CSV sauvegardé ici : $path')),
                   );
                 } else {
                   scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('Veuillez vous connecter pour exporter vos données.')),
+                    const SnackBar(
+                        content: Text(
+                            'Veuillez vous connecter pour exporter vos données.')),
                   );
                 }
               },

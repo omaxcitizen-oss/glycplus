@@ -17,13 +17,19 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        return ios;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for ios - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -46,29 +52,11 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBIHSr9-_EfBJR8GudvzWjPKO-oYSG6IkM',
-    appId: '1:132518173573:web:578cb5d0e984fb3c0042ec',
-    messagingSenderId: '132518173573',
-    projectId: 'gluco-guard-tutor',
-    authDomain: 'gluco-guard-tutor.firebaseapp.com',
-    storageBucket: 'gluco-guard-tutor.firebasestorage.app',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDMnH6tEMnxMeFsZROvF4d2JbmdLC_HfDQ',
-    appId: '1:32535166517:android:aac44a93e0efed18ef7b7c',
+    appId: '1:32535166517:android:b1757ff160de807fef7b7c',
     messagingSenderId: '32535166517',
     projectId: 'glycplus',
     storageBucket: 'glycplus.firebasestorage.app',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDRuyfU4PEFc1EcsoZHvlyzD0T6F_kzoqE',
-    appId: '1:132518173573:ios:64968662aa58902e0042ec',
-    messagingSenderId: '132518173573',
-    projectId: 'gluco-guard-tutor',
-    storageBucket: 'gluco-guard-tutor.firebasestorage.app',
-    iosBundleId: 'Y',
   );
 }

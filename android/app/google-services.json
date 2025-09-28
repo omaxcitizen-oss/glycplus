@@ -42,6 +42,25 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32535166517:android:b1757ff160de807fef7b7c",
+        "android_client_info": {
+          "package_name": "com.tonpackage.glycplus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMnH6tEMnxMeFsZROvF4d2JbmdLC_HfDQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

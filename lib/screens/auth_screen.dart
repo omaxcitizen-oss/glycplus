@@ -26,7 +26,9 @@ class _AuthScreenState extends State<AuthScreen> {
   void _switchAuthMode() {
     _formKey.currentState?.reset();
     setState(() {
-      _authMode = _authMode == AuthMode.connexion ? AuthMode.creationCompte : AuthMode.connexion;
+      _authMode = _authMode == AuthMode.connexion
+          ? AuthMode.creationCompte
+          : AuthMode.connexion;
       _errorMessage = null;
     });
   }
@@ -86,7 +88,8 @@ class _AuthScreenState extends State<AuthScreen> {
     // Common style for input fields
     final inputDecoration = InputDecoration(
       labelStyle: const TextStyle(color: Colors.grey),
-      contentPadding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 20.0),
+      contentPadding:
+          const EdgeInsets.symmetric(vertical: 18.0, horizontal: 20.0),
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
@@ -134,7 +137,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    isConnecting ? "Connectez-vous pour continuer" : "Rejoignez-nous en quelques étapes",
+                    isConnecting
+                        ? "Connectez-vous pour continuer"
+                        : "Rejoignez-nous en quelques étapes",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -142,15 +147,17 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ),
                   const SizedBox(height: 48),
-                  
+
                   // Username Field (only for account creation)
                   if (!isConnecting) ...[
                     TextFormField(
                       controller: _usernameController,
-                      style: const TextStyle(fontSize: 16, color: Color(0xFF333333)),
+                      style: const TextStyle(
+                          fontSize: 16, color: Color(0xFF333333)),
                       decoration: inputDecoration.copyWith(
                         labelText: 'Pseudo',
-                        prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                        prefixIcon: const Icon(Icons.person_outline,
+                            color: Colors.grey),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -165,14 +172,18 @@ class _AuthScreenState extends State<AuthScreen> {
                   // Email Field
                   TextFormField(
                     controller: _emailController,
-                    style: const TextStyle(fontSize: 16, color: Color(0xFF333333)),
+                    style:
+                        const TextStyle(fontSize: 16, color: Color(0xFF333333)),
                     decoration: inputDecoration.copyWith(
                       labelText: 'Adresse e-mail',
-                      prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
+                      prefixIcon:
+                          const Icon(Icons.email_outlined, color: Colors.grey),
                     ),
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
-                      if (value == null || !value.contains('@') || !value.contains('.')) {
+                      if (value == null ||
+                          !value.contains('@') ||
+                          !value.contains('.')) {
                         return 'Veuillez entrer une adresse email valide.';
                       }
                       return null;
@@ -183,10 +194,12 @@ class _AuthScreenState extends State<AuthScreen> {
                   // Password Field
                   TextFormField(
                     controller: _passwordController,
-                    style: const TextStyle(fontSize: 16, color: Color(0xFF333333)),
+                    style:
+                        const TextStyle(fontSize: 16, color: Color(0xFF333333)),
                     decoration: inputDecoration.copyWith(
                       labelText: 'Mot de passe',
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                      prefixIcon:
+                          const Icon(Icons.lock_outline, color: Colors.grey),
                     ),
                     obscureText: true,
                     validator: (value) {
@@ -210,16 +223,18 @@ class _AuthScreenState extends State<AuthScreen> {
                             });
                           },
                           activeColor: const Color(0xFF2D9CDB),
-                           shape: RoundedRectangleBorder(
+                          shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                        Text('Se souvenir de moi', style: TextStyle(fontSize: 16, color: Colors.grey[700])),
+                        Text('Se souvenir de moi',
+                            style: TextStyle(
+                                fontSize: 16, color: Colors.grey[700])),
                       ],
                     ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Error Message Display
                   if (_errorMessage != null)
                     Padding(
@@ -243,7 +258,8 @@ class _AuthScreenState extends State<AuthScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 5,
-                            shadowColor: const Color(0xFF2D9CDB).withOpacity(0.4),
+                            shadowColor:
+                                const Color(0xFF2D9CDB).withOpacity(0.4),
                           ),
                           onPressed: _submit,
                           child: Text(
@@ -254,15 +270,17 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ),
                         ),
-                  
+
                   const SizedBox(height: 16),
 
                   // Switch Auth Mode Button
                   TextButton(
                     onPressed: _switchAuthMode,
                     child: Text(
-                      isConnecting ? "Vous n'avez pas de compte ? S'inscrire" : "Vous avez déjà un compte ? Se connecter",
-                       style: TextStyle(
+                      isConnecting
+                          ? "Vous n'avez pas de compte ? S'inscrire"
+                          : "Vous avez déjà un compte ? Se connecter",
+                      style: TextStyle(
                         color: Colors.grey[700],
                         fontWeight: FontWeight.w500,
                       ),

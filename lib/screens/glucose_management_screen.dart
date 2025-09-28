@@ -8,7 +8,8 @@ class GlucoseManagementScreen extends StatefulWidget {
   const GlucoseManagementScreen({super.key});
 
   @override
-  State<GlucoseManagementScreen> createState() => _GlucoseManagementScreenState();
+  State<GlucoseManagementScreen> createState() =>
+      _GlucoseManagementScreenState();
 }
 
 class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
@@ -23,8 +24,10 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
 
   void _calculateAndShowCorrection(double isf) {
     if (_formKey.currentState!.validate()) {
-      final currentGlucose = double.tryParse(_currentGlucoseController.text) ?? 0;
-      final targetGlucose = double.tryParse(_targetGlucoseController.text) ?? 100;
+      final currentGlucose =
+          double.tryParse(_currentGlucoseController.text) ?? 0;
+      final targetGlucose =
+          double.tryParse(_targetGlucoseController.text) ?? 100;
 
       String title;
       String message;
@@ -42,20 +45,27 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
         _logCorrection(currentGlucose, correctionDose);
       } else {
         title = "Glycémie Correcte";
-        message = "Votre glycémie est dans la cible. Aucune correction n'est nécessaire.";
+        message =
+            "Votre glycémie est dans la cible. Aucune correction n'est nécessaire.";
       }
 
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(title,
+              style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(message, style: const TextStyle(fontSize: 16, color: Colors.black87)),
+              Text(message,
+                  style: const TextStyle(fontSize: 16, color: Colors.black87)),
               if (correctionDose > 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 20.0),
@@ -71,14 +81,21 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
               const SizedBox(height: 20),
               Text(
                 "Avertissement : Ceci est une suggestion. Consultez toujours un médecin avant de modifier votre traitement.",
-                style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.grey[700]),
+                style: TextStyle(
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey[700]),
               )
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text("COMPRIS", style: TextStyle(fontSize: 16, color: Color(0xFF2D9CDB), fontWeight: FontWeight.bold)),
+              child: const Text("COMPRIS",
+                  style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF2D9CDB),
+                      fontWeight: FontWeight.bold)),
             )
           ],
         ),
@@ -96,7 +113,12 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
       insulinDose: insulinDose,
       notes: 'Correction automatique',
     );
-    await FirebaseFirestore.instance.collection('users').doc(userId).collection('logs').doc(log.id).set(log.toMap());
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('logs')
+        .doc(log.id)
+        .set(log.toMap());
   }
 
   @override
@@ -104,7 +126,8 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Correction de Glycémie', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        title: const Text('Correction de Glycémie',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
         backgroundColor: const Color(0xFF2D9CDB),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -115,7 +138,10 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || !snapshot.data!.exists || snapshot.data!.data()?['isf'] == null || (snapshot.data!.data()!['isf'] as num) <= 0) {
+          if (!snapshot.hasData ||
+              !snapshot.data!.exists ||
+              snapshot.data!.data()?['isf'] == null ||
+              (snapshot.data!.data()!['isf'] as num) <= 0) {
             return _buildProfileNotSetWidget();
           }
           final userData = snapshot.data!.data()!;
@@ -133,11 +159,15 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.orangeAccent),
+            const Icon(Icons.warning_amber_rounded,
+                size: 60, color: Colors.orangeAccent),
             const SizedBox(height: 24),
             const Text(
               'Profil Incomplet',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -151,14 +181,18 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
               icon: const Icon(Icons.person, color: Colors.white),
               label: const Text('Aller au Profil'),
               onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ProfileScreen()));
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => const ProfileScreen()));
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2D9CDB),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                textStyle:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -180,7 +214,10 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
               Text(
                 "Votre ISF : 1 unité fait baisser de ${isf.toStringAsFixed(0)} mg/dL",
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, color: Colors.black54, fontStyle: FontStyle.italic),
+                style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
+                    fontStyle: FontStyle.italic),
               ),
               const SizedBox(height: 40),
               TextFormField(
@@ -188,17 +225,24 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
                 style: const TextStyle(fontSize: 18),
                 decoration: InputDecoration(
                   labelText: 'Glycémie Actuelle (mg/dL)',
-                  labelStyle: const TextStyle(fontSize: 16, color: Colors.black54),
-                  prefixIcon: const Icon(Icons.bloodtype, color: Color(0xFF2D9CDB)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  labelStyle:
+                      const TextStyle(fontSize: 16, color: Colors.black54),
+                  prefixIcon:
+                      const Icon(Icons.bloodtype, color: Color(0xFF2D9CDB)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2D9CDB), width: 2),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF2D9CDB), width: 2),
                   ),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value == null || value.isEmpty || double.tryParse(value) == null || double.parse(value) <= 0) {
+                  if (value == null ||
+                      value.isEmpty ||
+                      double.tryParse(value) == null ||
+                      double.parse(value) <= 0) {
                     return 'Veuillez entrer une valeur valide.';
                   }
                   return null;
@@ -210,17 +254,24 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
                 style: const TextStyle(fontSize: 18),
                 decoration: InputDecoration(
                   labelText: 'Glycémie Cible (mg/dL)',
-                  labelStyle: const TextStyle(fontSize: 16, color: Colors.black54),
-                  prefixIcon: const Icon(Icons.gps_fixed, color: Color(0xFF2D9CDB)),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  labelStyle:
+                      const TextStyle(fontSize: 16, color: Colors.black54),
+                  prefixIcon:
+                      const Icon(Icons.gps_fixed, color: Color(0xFF2D9CDB)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2D9CDB), width: 2),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF2D9CDB), width: 2),
                   ),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value == null || value.isEmpty || double.tryParse(value) == null || double.parse(value) <= 0) {
+                  if (value == null ||
+                      value.isEmpty ||
+                      double.tryParse(value) == null ||
+                      double.parse(value) <= 0) {
                     return 'Veuillez entrer une valeur valide.';
                   }
                   return null;
@@ -235,8 +286,10 @@ class _GlucoseManagementScreenState extends State<GlucoseManagementScreen> {
                   backgroundColor: const Color(0xFF2D9CDB), // CHANGED TO BLUE
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ],

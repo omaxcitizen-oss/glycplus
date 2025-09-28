@@ -9,7 +9,8 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  final AIService _aiService = AIService(projectId: 'glycplus'); // Utilisation du bon Project ID
+  final AIService _aiService =
+      AIService(projectId: 'glycplus'); // Utilisation du bon Project ID
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +39,8 @@ class _AdminScreenState extends State<AdminScreen> {
           title: const Text('Interagir avec l\'IA'),
           content: TextField(
             controller: promptController,
-            decoration: const InputDecoration(hintText: "Posez une question à l'IA"),
+            decoration:
+                const InputDecoration(hintText: "Posez une question à l'IA"),
             maxLines: 5,
           ),
           actions: <Widget>[
@@ -51,7 +53,8 @@ class _AdminScreenState extends State<AdminScreen> {
             TextButton(
               child: const Text('Envoyer'),
               onPressed: () async {
-                final result = await _aiService.sendPrompt(promptController.text);
+                final result =
+                    await _aiService.sendPrompt(promptController.text);
                 if (!mounted) return;
                 Navigator.of(context).pop(); // Fermer la boîte de dialogue
                 _showResultDialog(context, result);

@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserProfile {
@@ -85,7 +84,8 @@ class UserProfile {
       diabetesType: data['diabetesType'] as String?,
       glucoseUnit: data['glucoseUnit'] as String?,
       targetGlucoseFasting: (data['targetGlucoseFasting'] as num?)?.toDouble(),
-      targetGlucosePostprandial: (data['targetGlucosePostprandial'] as num?)?.toDouble(),
+      targetGlucosePostprandial:
+          (data['targetGlucosePostprandial'] as num?)?.toDouble(),
       basalInsulinBrand: data['basalInsulinBrand'] as String?,
       basalInsulinDose: (data['basalInsulinDose'] as num?)?.toDouble(),
       bolusInsulinBrand: data['bolusInsulinBrand'] as String?,

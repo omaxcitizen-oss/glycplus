@@ -30,17 +30,14 @@ class CsvExportService {
       return path;
     } else {
       String? outputFile = await FilePicker.platform.saveFile(
-        dialogTitle: 'Veuillez sélectionner un emplacement pour enregistrer le fichier CSV',
+        dialogTitle:
+            'Veuillez sélectionner un emplacement pour enregistrer le fichier CSV',
         fileName: 'diabetes_export.csv',
         allowedExtensions: ['csv'],
       );
-      if (outputFile != null) {
-        final file = File(outputFile);
-        await file.writeAsString(csv);
-        return outputFile;
-      } else {
-        return "Enregistrement annulé";
-      }
+      final file = File(outputFile);
+      await file.writeAsString(csv);
+      return outputFile;
     }
   }
 }

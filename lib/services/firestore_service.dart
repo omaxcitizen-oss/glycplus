@@ -1,69 +1,72 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/glucose_reading.dart';
-import '../models/user_profile.dart';
+import 'package:glycplus/models/user_model.dart';
+import 'package:glycplus/models/meal.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // --- Glucose Readings --- //
-
-  // Get a stream of glucose readings for a user
-  Stream<List<GlucoseReading>> getGlucoseReadingsStream(String userId) {
-    return _db
-        .collection('users')
-        .doc(userId)
-        .collection('glucose_readings')
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => GlucoseReading.fromFirestore(doc))
-            .toList());
+  // Users
+  Future<void> setUserProfile(UserModel user) {
+    return _db.collection('users').doc(user.uid).set(user.toJson());
   }
 
-  // Add a new glucose reading
-  Future<void> addGlucoseReading(GlucoseReading reading) {
-    return _db
-        .collection('users')
-        .doc(reading.userId)
-        .collection('glucose_readings')
-        .add(reading.toJson());
+  Future<UserModel> getUserProfile(String uid) async {
+    final snapshot = await _db.collection('users').doc(uid).get();
+    if (snapshot.exists && snapshot.data() != null) {
+      return UserModel.fromJson(snapshot.data()!);
+    } else {
+      // Return a default/empty user model if the document doesn't exist
+      return UserModel(uid: uid);
+    }
   }
 
-  // Update an existing glucose reading
-  Future<void> updateGlucoseReading(GlucoseReading reading) {
-    return _db
-        .collection('users')
-        .doc(reading.userId)
-        .collection('glucose_readings')
-        .doc(reading.id)
-        .update(reading.toJson());
-  }
-
-  // Delete a glucose reading
-  Future<void> deleteGlucoseReading(String userId, String readingId) {
-    return _db
-        .collection('users')
-        .doc(userId)
-        .collection('glucose_readings')
-        .doc(readingId)
-        .delete();
-  }
-
-  // --- User Profile --- //
-
-  // Get a stream of the user's profile
-  Stream<UserProfile?> getUserProfileStream(String userId) {
-    return _db.collection('users').doc(userId).snapshots().map((snapshot) {
-      if (snapshot.exists) {
-        return UserProfile.fromFirestore(snapshot);
+  Stream<UserModel> getUserProfileStream(String uid) {
+    return _db.collection('users').doc(uid).snapshots().map((snap) {
+      if (snap.exists && snap.data() != null) {
+        return UserModel.fromJson(snap.data()!);
+      } else {
+        // Return a default/empty user model if the document doesn't exist
+        return UserModel(uid: uid);
       }
-      return null;
     });
   }
 
-  // Create or Update a user profile
-  Future<void> setUserProfile(UserProfile profile) {
-    return _db.collection('users').doc(profile.uid).set(profile.toJson(), SetOptions(merge: true));
+  // Meals
+  Future<void> addMeal(String uid, Meal meal) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('meals')
+        .add(meal.toJson());
+  }
+
+  Future<void> updateMeal(String uid, Meal meal) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('meals')
+        .doc(meal.id)
+        .update(meal.toJson());
+  }
+
+  Future<void> deleteMeal(String uid, String mealId) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('meals')
+        .doc(mealId)
+        .delete();
+  }
+
+  Stream<List<Meal>> getMealsStream(String uid) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('meals')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Meal.fromJson(doc.data(), doc.id))
+            .toList());
   }
 }
