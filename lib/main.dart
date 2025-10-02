@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'providers/theme_provider.dart';
 import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/notification_service.dart';
@@ -17,29 +18,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
-      child: const MyApp(),
-    ),
-  );
-}
-
-class ThemeProvider with ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.system;
-
-  ThemeMode get themeMode => _themeMode;
-
-  void toggleTheme() {
-    _themeMode =
-        _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
-  }
-
-  void setSystemTheme() {
-    _themeMode = ThemeMode.system;
-    notifyListeners();
-  }
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -97,7 +76,7 @@ class MyApp extends StatelessWidget {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.black,
-          backgroundColor: Colors.deepPurple.shade200, // Corrected line
+          backgroundColor: Colors.deepPurple.shade200,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           textStyle:
@@ -108,6 +87,7 @@ class MyApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
         Provider<AuthService>(
           create: (_) => AuthService(FirebaseAuth.instance),
         ),
@@ -132,7 +112,7 @@ class MyApp extends StatelessWidget {
             theme: lightTheme,
             darkTheme: darkTheme,
             themeMode: themeProvider.themeMode,
-            home: const AuthWrapper(),
+            home: const AuthGate(),
             debugShowCheckedModeBanner: false,
           );
         },
@@ -141,17 +121,23 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<User?>(context);
-
-    if (user != null) {
-      return DashboardScreen(user: user);
-    } else {
-      return const AuthScreen();
-    }
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasData) {
+          return DashboardScreen(user: snapshot.data!);
+        } else {
+          return const AuthPage();
+        }
+      },
+    );
   }
 }
