@@ -1,6 +1,6 @@
+import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart'; // 🔹 Thème Neumorphic
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -10,119 +10,72 @@ import 'services/firestore_service.dart';
 import 'services/notification_service.dart';
 import 'services/storage_service.dart';
 import 'screens/auth_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/dashboard_neumorphic.dart';
 import 'firebase_options.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    const Color primarySeedColor = Colors.deepPurple;
-
-    final TextTheme appTextTheme = TextTheme(
-      displayLarge:
-          GoogleFonts.oswald(fontSize: 57, fontWeight: FontWeight.bold),
-      titleLarge: GoogleFonts.roboto(fontSize: 22, fontWeight: FontWeight.w500),
-      bodyMedium: GoogleFonts.openSans(fontSize: 14),
-    );
-
-    final ThemeData lightTheme = ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primarySeedColor,
-        brightness: Brightness.light,
-      ),
-      textTheme: appTextTheme,
-      appBarTheme: AppBarTheme(
-        backgroundColor: primarySeedColor,
-        foregroundColor: Colors.white,
-        titleTextStyle:
-            GoogleFonts.oswald(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: primarySeedColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          textStyle:
-              GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-      ),
-    );
-
-    final ThemeData darkTheme = ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primarySeedColor,
-        brightness: Brightness.dark,
-      ),
-      textTheme: appTextTheme,
-      appBarTheme: AppBarTheme(
-        backgroundColor: Colors.grey[900],
-        foregroundColor: Colors.white,
-        titleTextStyle:
-            GoogleFonts.oswald(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.black,
-          backgroundColor: Colors.deepPurple.shade200,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          textStyle:
-              GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-      ),
-    );
-
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => ThemeProvider()),
-        Provider<AuthService>(
-          create: (_) => AuthService(FirebaseAuth.instance),
-        ),
-        StreamProvider<User?>.value(
-          value: AuthService(FirebaseAuth.instance).authStateChanges,
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        Provider<AuthService>(create: (_) => AuthService(FirebaseAuth.instance)),
+        StreamProvider<User?>(
+          create: (_) => AuthService(FirebaseAuth.instance).authStateChanges,
           initialData: null,
         ),
-        Provider<FirestoreService>(
-          create: (_) => FirestoreService(),
-        ),
-        Provider<NotificationService>(
-          create: (_) => NotificationService(),
-        ),
-        Provider<StorageService>(
-          create: (_) => StorageService(),
-        ),
+        Provider<FirestoreService>(create: (_) => FirestoreService()),
+        Provider<NotificationService>(create: (_) => NotificationService()),
+        Provider<StorageService>(create: (_) => StorageService()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return MaterialApp(
-            title: 'GlucoGuard',
-            theme: lightTheme,
-            darkTheme: darkTheme,
-            themeMode: themeProvider.themeMode,
-            home: const AuthGate(),
-            debugShowCheckedModeBanner: false,
-          );
-        },
+
+      // 🌗 Application avec thème Neumorphic global
+      child: NeumorphicApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Glyc+',
+
+        // 🌈 Thème clair principal
+        themeMode: ThemeMode.light,
+        theme: const NeumorphicThemeData(
+          baseColor: Color(0xFFE0E5EC), // Couleur de fond douce
+          lightSource: LightSource.topLeft,
+          depth: 6,
+          intensity: 0.6,
+          shadowLightColor: Color(0xFFFFFFFF),
+          shadowDarkColor: Color(0xFFA3B1C6),
+          defaultTextColor: Colors.black87,
+        ),
+
+        // 🌒 Thème sombre
+        darkTheme: const NeumorphicThemeData(
+          baseColor: Color(0xFF2C2C2C),
+          lightSource: LightSource.topLeft,
+          depth: 4,
+          intensity: 0.8,
+          shadowLightColor: Color(0xFF3A3A3A),
+          shadowDarkColor: Color(0xFF1C1C1C),
+          defaultTextColor: Colors.white70,
+        ),
+
+        // 🏠 Page principale selon état Firebase
+        home: const AuthGate(),
       ),
     );
   }
 }
 
 class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+  const AuthGate({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -130,11 +83,16 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
+
         if (snapshot.hasData) {
-          return DashboardScreen(user: snapshot.data!);
+          // 🔹 Utilisateur connecté → Dashboard Neumorphic
+          return const DashboardNeumorphic();
         } else {
+          // 🔸 Utilisateur non connecté → Page d'authentification
           return const AuthPage();
         }
       },

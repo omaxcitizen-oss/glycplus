@@ -1,40 +1,46 @@
-
 name: glycplus
 description: "Une application Flutter pour la gestion du diabète."
-publish_to: 'none' 
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  
-  # Firebase - Let pub resolve the correct compatible versions
+
+  # UI et animations
+  flutter_neumorphic_plus: ^3.5.0
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.2
+  google_fonts: ^6.2.1
+  fl_chart: ^0.66.1
+  animate_do: ^3.3.0
+  flutter_speed_dial: ^7.0.0
+  dropdown_button2: ^2.3.9  # ← ajout pour dropdown stylés
+
+  # Firebase
   firebase_core: ^4.1.1
   firebase_auth: ^6.1.0
   cloud_firestore: ^6.0.2
-
-  # Other dependencies
-  cupertino_icons: ^1.0.8
-  provider: ^6.1.5+1
-  google_fonts: ^6.3.2
-  fl_chart: any
-  intl: any
-  flutter_speed_dial: ^7.0.0
-  csv: ^6.0.0
-  path_provider: ^2.1.5
-  rxdart: ^0.28.0
-  shared_preferences: ^2.5.3
-  file_picker: ^8.0.7
-  http: ^1.5.0
   firebase_ai: ^3.3.0
+
+  # Outils et stockage
+  csv: ^6.0.0
+  path_provider: ^2.1.2
+  rxdart: ^0.28.0
+  shared_preferences: ^2.3.2
+  file_picker: ^8.1.2
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/logo.png
+    - assets/images/background.jpg
